@@ -1,0 +1,608 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{geometry}[margin=1inch]
+
+\title{Math 599}
+\author{Tadanaga Takahashi}
+\date{Fall 2018}
+
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Welcome to Math 599. You will work on a single project over the course of the semester. The project is to produce a full report in \LaTeX which includes mathematical theory, implementation, and results. The goal is to learn various technical Applied Math-related skills in the process.
+
+\section{Objectives}
+
+The goals of the students are to learn
+\begin{itemize}
+    \item the basics of Latex
+    \item the basics of Linux
+    \item how to write code in C++
+    \item how to produce figures in MATLAB
+    \item how to utilize the cluster
+    \item how to write parallel code using OpenMP/MATLAB
+\end{itemize}
+
+\section{Project}
+
+The project is to write a Latex report on solving for the unknown $u(x) \in C^2(\Omega)$ in the problem
+\begin{align}
+u'' &= f(x), x \in \Omega \\
+u(0)&=c_l \\
+u(1)&=c_r
+\end{align}
+where $\Omega$ is the unit interval $[0,1]$. You are to write a brief summary on the theory of finite difference methods and its application to the 1D Poisson equation. Use the 2nd order central difference with uniform mesh to approximate the 2nd derivative. Your explanation of the theory must include the formulation of the linear system $A\Vec{u}=\Vec{f}$ and the order of the method. You will use the Jacobi iteration method to solve the linear system. How do you know that the method will converge for this particular problem? You must use a source and add citation.
+
+For a few different forcing functions $f(x)$ of your choice, you will produce numerical solutions for the problem by implementing the Jacobi iteration in C++. Make sure that a solution exists for your choice of $f$ and boundary conditions. You do not need to construct the matrix $A$. Instead tailor the Jacobi method to work specifically for the tridiagonal $A$. You will then import the data into MATLAB and produce 3D graphs of the solutions with titles and proper labels. Save the figures as images.
+
+Next, you will modify your code using the OpenMP package. Make your code take an additional argument: number of processors $p$. Your parallel Jacobi code will solve the linear system using $p$ processors.
+
+Now construct a function $f$ for which the an exact solution $u$ is known (just take a simple function and compute the laplacian). You will use your code to produce a numerical solution then compute the error $E(N)=\|\Vec{u}_N-u(x)|_xi\|_{\infty}$ in MATLAB for $N$ = 4, 8, 16, 32, and 64. The number of processors $p$ can be whatever you like. Do a linear interpolation $y=c_0 + c_1 x$ on the data where $y=log(E(N))$ and $x = log(N)$. What is the value of $c_1$ and why is it important? Produce a figure showing the data, the linear fit, and also add a legend. Now fix your $N=64$ and vary $p$. Compute the numerical solution using $p$ = 1,2,4,8,16, and 32. Modify your code so that the wallclock runtime is calculated. You will required to access the computer cluster, Kong, to run the code with multiple processors. Make a plot of the of the speedup vs $p$.
+
+Take the images you have produced and incorporate them into the report. Explain what the figures show and how they were produced. What insight do the figures offer? The finished report should have:
+\begin{itemize}
+    \item An introduction which explains the problem and methodology
+    \item Theory on the methods (FDM and Jacobi)
+    \item Experimental results
+    \item Discussion on the results
+    \item Bibliography
+\end{itemize}
+
+
+
+
+
+
+\section{Day 1}
+Form groups among yourselves which equally distribute experience needed to complete this project. Register for an account on overleaf. Have one person start a blank project for the group, then share that project. Begin collaborating on an introduction. Use the \% symbol to leave comments in the code. In overleaf, you can start a solo project with a template complete with examples and some formatting. You can use this separate project to teach yourself how to write equations, make sections, make citations, make bullet points and lists, and add pictures and captions. Alternately, you can search for specific implementations on the web. Learn how to rely on tab-completion. I will teach you how to use bibtex\cite{keyphrase99}. If you have a laptop, install Zotero and then I will show you how to manage electronic papers and books.
+
+
+
+
+
+\section{Day 2}
+Today you will learn some basic Linux and C++. For windows users, install the software MobaXterm. I recommend it since it has a nice GUI featuring a drag-and-drop file sharing. Use it to ssh into the Kong server: ucid@kong.njit.edu. For Mac users, just ssh into server using the 'ssh' command. \href{https://ist.njit.edu/using-SSH-from-Mac-OS-X/}{Here} is a link for more information.
+\subsection{Linux}
+Learning how to use Linux means learning how to utilize the computer using only the terminal. Type in a command and hit enter to execute. Try these commands:
+\begin{itemize}
+    \item \texttt{ls}: show all files and folders (or directory) in the current directory
+    \item \texttt{cd}: return to the main folder.
+    \item \texttt{cd ..}: move back up by one folder. You can type \texttt{cd (foldername)} to move to a specific folder.
+    \item \texttt{pwd}: tells you what directory you are in
+    \item \texttt{mkdir Class599}: make a new folder called 'Class599'
+    \item \texttt{mkdir Class599/C++}: make a subfolder inside Class599 called 'C++'
+    \item \texttt{cd Class599}: go into the folder 'Class599'
+    \item \texttt{touch readme.txt}: create a text file called `readme.txt`
+    \item \texttt{nano readme.txt}: open a bare-bones command-line text editor to add some text to the readme file. You can just type \texttt{nano readme.txt} without creating the file first. You can also use \texttt{gedit} in Kong or \texttt{vim}, if you know how to use it.
+    \item \texttt{cat readme.txt}: display the contents of the file
+    \item \texttt{man (any command)}: - read the manual of some command, then type ctrl+z to exit
+    \item \texttt{ls -l}: show all files and folders and each of their permission levels
+\end{itemize}
+\subsection{C++}
+One of nice things about Linux is, you can begin programming very easily. Unlike Windows, you can download everything you need using the command line. Kong already has many packages pre-installed. Now you will make your own C++ code, compile, then run it. Use the command \texttt{gedit hello.cpp} to create and start editting a C++ file. Type in these two lines of code into the file,
+\begin{verbatim}
+#include <iostream>
+int main() {std::cout<<"hello in C++"\n;}
+\end{verbatim}
+You can compile the code by using the command \texttt{g++ hello.cpp}, which creates an executable version of the code you just wrote. The file should be called \texttt{a.out} by default. Check to see if it exists and is indeed executable by using \texttt{ls -l}. You can run the file by typing \texttt{./a.out}. If it is not executable then type \texttt{chmod +x a.out} to make it so. You can specify the output filename by doing \texttt{g++ hello.cpp -o hello}, and this will create an executable file called \texttt{hello}. For future reference, the "g++" is the command, "-o" is called the flag, and the "hello" is called an argument. Running this program simply prints a message in the terminal. Now try running the command \texttt{./hello >> testing.txt}. This will create a text file (if it did not already exist) and write the output of the program into it. Try running the same command again (press up on the keyboard). Take a look at the contents of the file.
+
+The hello program does not depend on any arguments. That means you cannot specify any options for running the program; the program will always do the same action. Now you will write a program that does depend on arguments. Start by typing \texttt{gedit args.cpp}. Type in these lines of code:
+\begin{verbatim}
+#include <iostream>
+using namespace std;
+int main(int argc, char** argv){
+        cout << "The number of arguments you have are: " << argc << endl;
+        for(int i=0; i<argc; i++){
+                cout << "argv[" << i << "]: " << argv[i] << endl;
+        }
+}
+\end{verbatim}
+Compile it by typing \texttt{g++ args.cpp -o args}. Now try running something like \texttt{./args blah blah blah} and see what gets printed out. Notice that inside the \texttt{int main()}, there are variables inside. Before, it was blank. The \texttt{argc} variable is the number the words you type after the program + 1, and the \texttt{argv} is an char array containing the actual words.
+
+\subsection{Exercise}
+As an exercise, write a program that prints out "hello world" $n$ times. If there is something you don't know how to do, look it up online (this is big part of coding). If I compile the code and type \texttt{./helloxn 4}, then the output should something like this:
+\begin{verbatim}
+Hello world
+Hello world
+Hello world
+Hello world
+\end{verbatim}
+
+\subsection{Shell Script}
+Now we will go over some shell scripting. Shell scripts are those files that end with .sh. They contain shell commands. They are usually used to do a `batch` of jobs. They automate the process of running code multiple times. Here is a little example:
+\begin{verbatim}
+#!/bin/sh
+echo "Hello in Bash"
+\end{verbatim}
+All it does is print hello. To run the script, just type \texttt{./scriptname.sh}. You might need to give it permission first. As an exercise, write a shell script that loops over $n = 1,2,...,10$. For each $n$, the script will
+\begin{itemize}
+    \item create a folder named $n$.
+    \item create a textfile named \texttt{data.txt} and it will have "hello world" written in it $n$ times. Utilize the \texttt{helloxn} program that you wrote.
+    \item move the data file to the corresponding folder.
+\end{itemize}
+Then print a notification when it is done. This will be a good practice for the project.
+
+\subsection{Other Topics}
+You can do some math in C++, but it is a bit cumbersome. You can edit C++ code in MATLAB. Type in \texttt{edit sinewave.cpp} to create a new file. Type in these lines of code:
+\begin{verbatim}
+#include<iostream>
+#include<cmath>         // This is a math library
+using namespace std;
+int main()
+{
+    double x,y;
+    for(int i = 0; i < 100; i++)
+    {
+        x = i*2*M_PI/100;     // x goes from 0 to 2pi
+        y = sin(x);
+        cout << x << " " << y << "\n"; // print out x and y
+    }
+}
+\end{verbatim}
+All this program does is print out 2 columns of numbers: $x_i$ and $y_i$, where $x_i = i(2\pi/N)$ and $y_i = \sin(x_i)$. Now let's write a shell script that compiles the code, runs it for you, and saves the output. You can do it all in MATLAB; just type in \texttt{edit run.sh}, and type in the following lines of code:
+\begin{verbatim}
+#!/bin/sh
+g++ sinewave.cpp -o sinewave  # compile
+rm output.txt                 # delete existing textfile
+./sinewave >> output.txt      # write output to fresh file
+rm sinewave                   # delete the executable
+\end{verbatim}
+Now you have a datafile. Plotting in C++ is possible but I do not recommend it. You can import this datafile to R, MATLAB, Python, or even Excel; all of these have better plotting capabilities.
+
+
+
+\section{Day 3}
+\subsection{Install}
+Today you will learn the basics of MATLAB. I recommend you download MATLAB on your own machine. Make an account on \href{https://www.mathworks.com/}{Mathworks} using your NJIT email account. Your account should have an active MATLAB license. Download the latest version of MATLAB directly from their website, not the NJIT website. All you need to do is activate the software using the account you just made.
+
+\subsection{Interface}
+Unlike C++, MATLAB is not a programming language; it is a programming platform (similar to R). You do write code in MATLAB but it's much easier than writing code in a compiled language: you don't have to load any packages, you don't have to worry about pointers or data types, syntax is intuitive, and debugging is a breeze. Open up MATLAB. The MATLAB interface consists 3 windows: a Command Window, a file browser, and a Workspace; and it has a toolbar at the top. The Command Window works similar to a terminal in Linux that you used last week. I forgot to mention last week that you can make variables in Linux by using the \texttt{\$=} operator. In MATLAB, you just use equal sign. Once you create a variable, the variable name and its value will be listed in Workspace. The path of your working directory is displayed right below the toolstrip. The contents of your working directory is shown in the Current Directory panel.
+
+\subsection{The Terminal}
+First, you should learn the Command Window basics. Try out these commands: \texttt{cd, pwd, mkdir, rmdir, delete, ls, dir, edit, type, clc, clear, help, lookfor}. Many of these should look familiar to you. The MATLAB command \texttt{help} is the equivalent of \texttt{man} (manual) command in Bash. Try typing in these commands:
+\begin{verbatim}
+pwd
+name = 'MATLAB_folder'
+mkdir(name)
+ls
+cd(name)
+pwd
+edit 'readme.txt'
+\end{verbatim}
+The last command creates a textfile for you and opens up a editor window. You can take some notes if you wish. It's good practice to document every code you write.
+
+\subsection{Tutorial}
+Just follow the tutorial \href{https://www.mathworks.com/help/matlab/learn_matlab/desktop.html}{here.}
+
+\subsection{Functions}
+The files with .m extension can either be scripts or \href{https://www.mathworks.com/help/matlab/ref/function.html}{functions}. You can make your own function and then call it just like a built-in MATLAB command. The first line of every function has to follow this basic format: \begin{verbatim}
+function [ output_args ] = function_name( input_args )
+\end{verbatim}
+Type in the command \texttt{edit hello.m}. This will create a file called 'hello.m' and open up a text editor for it. Type in these lines of code
+\begin{verbatim}
+function [name_length] = hello(name)
+% This is a function that says hello to you and returns the number of
+% characters in your name.
+message = ['Hello, ' name];
+name_length = length(name);
+disp(message)
+end
+\end{verbatim}
+Try out the command using your own name. Call the function from the terminal. Also try typing \texttt{help hello}. One thing to note about functions is that they have their own private workspace. Type in \texttt{name = 'abc'} in the terminal to create a new variable with same exact variable name as the one used in the function. When you type in the command \texttt{hello('efg')}, what will the output be? When you run a command, you never have to worry about clearing your workspace because functions only used local variables. For now, you can only call the function from the directory where the function is saved. If you want to be able to call the function from directory, then you need to change the settings. Go to the Home tab and click on Set Path. Add the folder containing your function to MATLAB's search path and then you will be able to use the function \texttt{hello} from any directory.
+
+You can also make \href{https://www.mathworks.com/help/matlab/matlab_prog/anonymous-functions.html}{anonymous functions} for when you need simple arithmetic functions. For example, suppose you wanted a to code the real-valued function $f(x)=\frac{1}{1+x^2}$. Then you can type \texttt{f=@(x) 1./(1+x.\^{}2)} to create the function handle \texttt{f}. Copy and paste these lines of code into a script and run it:
+\begin{verbatim}
+x = linspace(-1,1);
+f=@(x,p) 1./(1+x.^2).^p;
+hold on
+for i = 1:3
+    plot(x,f(x,i))
+end
+legend('1','2','3')
+\end{verbatim}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.5\textwidth]{fig1.png}
+\caption{Output of MATLAB code.}
+\end{figure}
+
+MATLAB can also do symbolic computing. \href{https://www.mathworks.com/help/symbolic/create-symbolic-functions.html}{Symbolic functions} are useful for when you need exact representations, derivatives, integrals, or solve simple ODEs. See the link for the syntax and basic usage.
+
+\subsection{Exercise}
+Construct this matrix $A\in \mathbb{R}^{n\times n}$, and the column vector $f\in \mathbb{R}^n$ of the form
+$$ A =  \left[ \begin{array} { r r r r r } {2}&{-1}&{} \\ {-1}&{2}&{-1}&{} \\ {}&{-1}&{2}&{-1} \\ {}&{}&{}&{\dots} \\ {}&{}&{}&{-1}&{2} \end{array} \right],
+\quad  f=  h^2\begin{bmatrix} f(x_1) \\ f(x_2) \\ \vdots \\ f(x_n) \end{bmatrix}$$
+where $f(x) := -\sin(x)$, $x_i:=ih$, and $h := \frac{\pi}{n+1}$. You can solve the system $Au=f$ in MATLAB by typing \texttt{u = A\textbackslash f}. Plot the solution you get for 4 different values of $n$ in a subplot. Make the figure look as clear as you can can by changing the title, labels, line properties, legend, etc. Here's an example.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.3]{fig2.png}
+\caption{Example of Finite Difference used to estimate ODE Solution}
+\end{figure}
+
+\section{Day 4}
+We will be doing more MATLAB today. Everybody should have a go-to scripting language to do quick-and-dirty computations. It can be Python, R, Julia, etc. I prefer MATLAB because it has many practical, well-documented functions and its interface allows for easy debugging. Here are some topics I want to cover:
+\begin{itemize}
+    \item Basic code structuring (comments, variables, blocks, functions, loops)
+    \item Macros, Favorites, Settings
+    \item \href{https://www.mathworks.com/help/matlab/ref/cell.html}{Cells}, \href{https://www.mathworks.com/help/matlab/ref/table.html}{Tables} and \href{https://www.mathworks.com/help/matlab/ref/struct.html}{Structures} (which are objects in MATLAB)
+    \item The \href{https://www.mathworks.com/help/matlab/matlab_prog/publishing-matlab-code.html#responsive_offcanvas}{Publish} feature
+    \item \href{https://www.mathworks.com/help/matlab/matlab_prog/what-is-a-live-script-or-function.html}{Live Script}
+    \item \href{https://www.mathworks.com/help/matlab/matlab_prog/debugging-process-and-features.html}{Debugging}
+    \item Improve efficiency (\href{https://www.mathworks.com/help/distcomp/parfor.html}{parfor} and \href{https://www.mathworks.com/help/matlab/matlab_prog/vectorization.html}{vectorize})
+\end{itemize}
+We will quickly go over these concepts. I will show you examples of code I wrote in MATLAB. Go \href{https://web.njit.edu/~tt73/599.html}{here} to download the files. The best way to learn is to try to solve a problem yourself.
+
+\subsection{Problem Solving Exercise}
+Sudoku is a puzzle game where you fill in the remaining spots of a partially filled 9$\times$9 grid according to a specific rule. Here is a description:
+\begin{quote}
+The classic Sudoku game involves a grid of 81 squares. The grid is divided into nine blocks, each containing nine squares.
+
+The rules of the game are simple: each of the nine blocks has to contain all the numbers 1-9 within its squares. Each number can only appear once in a row, column or box.
+
+The difficulty lies in that each vertical nine-square column, or horizontal nine-square line across, within the larger square, must also contain the numbers 1-9, without repetition or omission.
+
+Every puzzle has just one correct solution.\cite{sudoku}
+\end{quote}
+Your task is to write a code that verifies the solution of a solved board. Go \href{http://lipas.uwasa.fi/~timan/sudoku/}{here} and download a textfile of a solved board. Write a MATLAB script that imports that file and checks the solution of that particular board. \\
+
+I am not trying to challenge your algorithmic skills; I will give you the psuedocode of the solution checker. The emphasis is on
+\begin{itemize}
+    \item How to approach a problem
+    \item How to structure a script
+    \item What to do when you encounter an error, and
+    \item How to present your results
+\end{itemize}
+
+
+
+
+\section{Day 5}
+\subsection{Get Mathematica on your computer}
+Today we will go over Mathematica. Create a Wolfram account \href{https://account.wolfram.com/auth/create}{here} using your NJIT email. After you go through a validation procedure, your account should have an active license. You can then go to the \href{https://user.wolfram.com/portal/myProducts.html}{User Portal} to download Mathematica and get a license key for it. It is also possible to get a Wolfram Alpha Pro license for free (but I don't remember the procedure).
+
+\subsection{Mathematica}
+Mathematica is a computational tool that can do many things. Its capabilities grow every year. It is most famous for being able to do symbolic computations. Mathematica can do tedious computations like find the eigenfunctions for a linear operator, find the Green's Function, expand and regroup long expressions by like terms, find series solutions to ODEs, and so on. I personally like it because it allows me to interact with plots of functions. It's very similar to the MATLAB Live Script. Since everyone in this class is taking the Analysis course, I will demonstrate how Mathematica can be helpful in analyzing functions.
+
+Mathematica is basiclly a platform to construct a 'notebook'. On this notebook, you can do some light text editing. You can make title sections, add images, add hyperlinks, draw shapes, etc. In the same notebook, you can make and manipulate variables, plot functions, solve equations symbolically, etc. You can combine these two elements to tell a story. You can use Mathematica to do some quick analysis and them write some notes to explain your findings.
+
+\subsection{Assignment}
+I am not really going to teach you Mathematica. Instead I will teach you how to teach yourself. I made an example notebook which you can download \href{https://web.njit.edu/~tt73/Files/599/example_notebook.nb}{here}. We will go over this quickly. After we go through this you will analyze some series of functions on your own. Create a slider plot varying the parameter $n$ or $p$ for these functions:
+\begin{itemize}
+    \item $f_n(x)=n e^{-(nx)^2}, x\in (-\infty,\infty) \text{, as }  n \rightarrow \infty$
+    \item $f(x;p)=\log\frac{1}{|x|^p}, x\in (-1,1), p \in [1,\infty)$
+    \item $f_n(x)=x^{-1}e^{1/(nx)}, x\in (0,\infty) \text{, as }  n \rightarrow \infty$
+\end{itemize}
+
+Also, take the surface level example from the my notebook and modify it so that you can vary the level $t$ with a slider. I think doing this will help you conceptualize Lebesgue integrals better.
+
+\section{Days 6 - 7}
+Today we will go over more C++. C++ is a complied language with a lot of memory-handling options, meaning there's more room for small optimizations. Some of us will have to design and run computationally expensive code multiple times. You may have to run code which takes days to run. If the code you wrote in MATLAB or Python is taking too long and it is slowing down your research progress, then you may want to rewrite it in C++. (Also, learning C++ increases your job prospects).
+
+\subsection{Armadillo}
+I highly recommend the \href{http://arma.sourceforge.net/}{Armadillo} library for doing math on C++. It's one of the more up-to-date Linear algebra packages. It is built on top of the older libraries: LAPACK and BLAS, so you can rely on their algorithms. It designed to be competitive with MATLAB; it mimics a lot of the syntax and its actually faster. You can do things like create sparse matrices, solve linear systems, SVD, FFT, etc. That being said, our Kong server doesn't have this library available. You will have to download it on your own computer, which can be a bit challenging (unless you're on Linux).
+
+\subsection{Concepts}
+\begin{itemize}
+    \item Modular Programming
+    \item Arrays and Loops
+    \item Printing messages
+    \item Exporting data
+    \item Efficiency and timing code
+\end{itemize}
+I will go over some of the syntax and code structuring that you will need to complete the next exercise.
+
+\subsection{Dart Board Method}
+It is very easy to generate a pseudo random uniformly distributed from 0 to 1. Let $X,Y\sim U(0,1)$. What is the probability that $(X,Y)$ will fall inside the quarter circle? The exact probability is the ratio between the area of the quarter circle and the square:
+\begin{align*}
+    P(\text{Land in quarter circle}) &= \frac{\text{Area of quarter circle}}{\text{Area of square}} \\
+    &= \frac{\pi r^2/4}{r^2}  \\
+    &= \pi /4
+\end{align*}
+The probability can be estimated using a Monte Carlo Simulation. Let $X_i,Y_i\sim U(0,1)$ for $i=1,2,...,N$. Let $M$ denote the number of points that land inside the quarter circle. Then for sufficiently large $N$, $P(\text{Land in quarter circle})\approx M/N$. Hence we have the following approximation for $\pi$:
+$$\pi \approx 4M/N$$
+Look at Figure 3 for a demonstration of the simulation.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.6]{fig3}
+\caption{1000 pair of random points (x,y)}
+\end{figure}
+
+\subsection{Exercise}
+You will implement the dart board method in C++.
+\begin{enumerate}
+    \item Write a function that simulates the throwing of $N$ darts and returns the amount of darts which land in the quarter circle. $N$ is the input of this function. Also, make this function print out the location of the dart and whether or not it landed in the circle. Write this function in the header file. Then in the main file, call this function with 50 darts. Use the output of this function to estimate $\pi$.
+    \item Write a function that returns the amount of darts it takes to estimate $\pi$ up to a $k$ digits. $k$ is the only input of the function.
+    \item In the main file, call this function multiple times (at least 10) and compute the average number of darts it takes to get $k$ digit accuracy. Also get the average amount of time it takes in milliseconds. Export this data to a text file.
+    \item Make a bargraph in MATLAB (or R, or python) to show average time vs digits and average number of darts vs digits. Figure 4 shows a sample output.
+\end{enumerate}
+For this exercise, let error be $E=|\pi - \Bar{\pi}|$ and define $k$ digit precision to mean $E\leq 10^{-k}$ where $k$ is a positive integer. You can use this \href{https://web.njit.edu/~tt73/Files/599/main.cpp}{main} file and this \href{https://web.njit.edu/~tt73/Files/599/header.h}{header} file as a template.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.6]{fig4}
+\caption{Sample result showing the average of 16 simulations.}
+\end{figure}
+
+\section{Day 8}
+Our topic today is efficiency. The dartboard method is not an efficient way to estimate $\pi$. It takes a long time to determine how many darts are needed to get, say, 12 digits of precision. Figure 4 shows an exponential increase in time with precision requirement. Luckily, simulations can be computed in parallel. Instead of doing doing one simulation at a time, do multiple at once. This will speed up the code considerably.
+
+\subsection{Timing Code}
+First, lets talk about timing the code. There is a library called \texttt{omp.h} which has a high resolution clock which has a tick interval of $10^{-9}$ seconds. The way to time code is like this:
+\begin{verbatim}
+    double time = omp_get_wtime();
+    \\ insert code that you wish to time
+    \\ in here
+    time = omp_get_wtime() - time;
+\end{verbatim}
+"wtime" is short for wall clock time. This is distinct from CPU time. Look \href{https://stackoverflow.com/questions/10874214/measure-execution-time-in-c-openmp-code}{here} for an explanation. Tip: don't use \texttt{time()} from the \texttt{ctime} library because it cannot measure time elapsed for parallel code. Also, the variable type is \texttt{clock\_t} and the time is measured in CPU cycles, so the \texttt{time()} function is just all around inconvenient. Just keep in mind that about is that certain C++ distributions do not have \texttt{omp.h} already included. And, you have to add an additional option when compilation: \texttt{g++ main.cpp -fopenmp}. In MATALAB, the syntax is
+\begin{verbatim}
+    tic
+    % enter code here
+    time = toc
+\end{verbatim}
+This will give you the time in seconds.
+
+\subsection{Goal: save computation time}
+You can classify algorithms into 2 categories: serial or parallel. In serial code, one processor runs through each line of code. In parallel code, there can be multiple processors running a block of code simultaneously. There are a class of serial algorithms that can be made parallel very easily. The easiest example of a parallel algorithm is a parallel for loop. Consider this MATLAB example:
+\begin{verbatim}
+    y = zeros(1,N)
+    for i = 1:N
+        xi = i*pi/N
+        y(i) = sin(xi)
+    end
+\end{verbatim}
+This is a serial algorithm. This algorithm discretizes $y(x)=\sin(x)$ from 0 to $\pi$. You can make this parallel very easily by changing the for to a parfor
+\begin{verbatim}
+    y = zeros(1,N)
+    parfor i = 1:N
+        xi = i*pi/N
+        y(i) = sin(xi)
+    end
+\end{verbatim}
+In the first algorithm, one processor fills in each element of y-vector one-by-one in order. And in the second algorithm, the job of filling in the y-vector is distributed to multiple processors. However, this is done in \textit{random} order. There are other algorithms that can't be parallelized. Consider the algorithm to compute the Fibonacci sequence:
+\begin{verbatim}
+    y = ones(1:N)
+    for i = 3:N
+        y(i) = y(i-1) + y(i-2)
+    end
+\end{verbatim}
+The iterations must happen in sequential order for this algorithm to work, hence parfor will give you a nonsensical result in this Fibonacci example. Point: when you have a loop where each iteration can be done independently, you can write parallelize very easily and make it run faster.
+
+When parallel computing does work, you can specify how many processors or threads you want running simultaneously. You may think that splitting up the job to $p$ processors will make your job finish $p$ times faster. However, the computer needs to process the work distribution. The whole point of parallelization is to reduce computation time for a large-scale problem. Look at this MATLAB \href{https://web.njit.edu/~tt73/Files/599/timing.mlx}{example}. This is a live script which times how long it takes to discretize $y(x)=\sin(x)$.
+
+
+\subsection{MATLAB: Two types of Parallelization}
+In MATLAB, you have access to two types of parallelization:
+\begin{itemize}
+    \item \texttt{\href{https://www.mathworks.com/help/distcomp/parfor.html}{parfor}} - easy to use, but it's a bit situational
+    \item \texttt{\href{https://www.mathworks.com/help/distcomp/spmd.html}{spmd}} - harder to learn, but more useful
+\end{itemize}
+The difference: \textbf{parfor} is a parallel loop and \textbf{spmd} is a parallel region. When you have a for loop that is sequence-independent, then you can use parfor and MATLAB will automatically distribute the iterations among the 'workers'. If you want control over what each worker does and have them communicate parallel variables, then you want to use spmd. spmd is faster then parfor if you know what you're doing. spmd has special variables called \texttt{numlabs} and \texttt{labindex}, which returns the total number of workers and the index of the worker. There is also the function \texttt{gplus()} which is similar to the reduce directive in MPI and Open MP. You can also send and receive variables between workers within the spmd region, just like in MPI. See this \href{https://web.njit.edu/~tt73/Files/599/parallel_examples.mlx}{example} sheet. It shows the effectiveness of the parallelization over the serial code in the context of the dartboard method.
+
+\subsection{Exercise}
+The \href{https://en.wikipedia.org/wiki/Jacobi_method}{Jacobi method} is an algorithm that is meant to approximate the solution to $A\textbf{x}=\textbf{b}$. Let the $A\in \mathbb{R}^{n\times n}$ be the tridiagonal
+$$A =  \left[ \begin{array} { r r r r r } {2}&{-1}&{} \\ {-1}&{2}&{-1}&{} \\ {}&{-1}&{2}&{-1} \\ {}&{}&{}&{\dots} \\ {}&{}&{}&{-1}&{2} \end{array} \right].$$
+Then the Jacobi method
+$$x _ { i } ^ { ( k + 1 ) } = \frac { 1 } { a _ { i i } } \left( b _ { i } - \sum _ { j \neq i } a _ { i j } x _ { j } ^ { ( k ) } \right) , \quad i = 1,2 , \ldots , n$$
+will simplify to
+\begin{align*}
+    x_{1}^{(k+1)} &= \frac {1} {2} \left( b_{ 1 } + x_{2}^k \right) \\
+    x_{i}^{(k+1)} &= \frac {1} {2} \left( b_{ i } + x_{i-1}^k + x_{i+1}^k \right) , \quad i = 2,3 \ldots , n-1 \\
+    x_{n}^{(k+1)} &= \frac {1} {2} \left( b_{ n } + x_{n-1}^k \right)
+\end{align*}
+Generate a random $\textbf{x}$ and compute $\textbf{b}=A*\textbf{x}$. Implement the Jacobi method in parallel with 2 and 4 workers. How much faster is the parallel method?
+
+
+\section{Day 9}
+You can ssh into the Kong server with the host ucid@kong.njit.edu and your AFS password. If you are using the campus wifi, you can access the Kong server. Otherwise, you need to use the \href{https://ist.njit.edu/vpn/}{VPN}. In the Kong server, you have access to the command \texttt{module}. It allows you to load packages that your code may need to compile properly. For example you can type \texttt{module load gcc} to load the latest version gcc. Type \texttt{module list} to show the modules that have been loaded and type \texttt{module avail} to show all the available modules.
+
+The main purpose of Kong is run programs that take a long time to finish. Instead of running code on your PC, you can have code run all day on the cluster and have the output be saved on the server or emailed to you. Go \href{https://wiki.hpc.arcs.njit.edu/index.php/SonOfGridEngine}{here} for a guide on submitting jobs. The basic approach is to first compile a program, write a script to run the program, and then submit the script to the SGE using the command \texttt{qsub}. At the link, you can download a \href{https://wiki.hpc.arcs.njit.edu/external/serial.script}{sample script}. Let's say I have a simple program called \texttt{a.out}. Then I will modify the script like so:
+\begin{verbatim}
+#!/bin/bash
+#$ -N job1
+#$ -M tt73@njit.edu
+#$ -m abe
+#$ -cwd
+#$ -j y
+#$ -S /bin/bash
+echo "Running on $(uname -n)"
+echo "PATH=$PATH"
+echo "cwd=$(pwd)"
+./a.out
+\end{verbatim}
+Then I type \texttt{qsub serial.script} to have the program run on the cluster. (For simplicity, I have a script and the program in the same directory.) You can check the status of the job with the command using \texttt{qstat}. Once it's finished, you will find a new text file in the directory. Any output of the program will be saved on that file.
+
+\subsection{Parallel Jobs}
+If you write a OpenMP program, you can just use the script above. You do not need to make any changes. Note that parallelization of code with OpenMp will only distribute jobs among the cores on a single machine (usually 4). That means you can request 64 cores, but the OpenMP code will only be able to utilize 1 machine with 4 cores. If you want to be able to distribute the job to multiple cores you need to code in Open MPI. You will need to load special modules and also use the command \texttt{mpirun}. Look at the \href{https://wiki.hpc.arcs.njit.edu/external/parallel.script}{parallel submit script} for a reference.
+
+\section{Day 10}
+We will go over machine learning on R today. You can download R from \href{https://www.r-project.org/}{here}. When you open up the R application, you will have a GUI with a console window. If you want a better interface, you can download R Studio from \href{https://www.rstudio.com/products/rstudio/download/#download}{here}. R Studio looks similar to MATLAB.
+
+\subsection{Machine Learning}
+I will be basing this tutorial on a book which can be found \href{https://www-bcf.usc.edu/~gareth/ISL/}{here}. I will only go over the concepts of supervised learning methods. You can find a video tutorial \href{http://tagteam.harvard.edu/hub_feeds/1981/feed_items/1844177}{here}. Suppose you are given a data set $\textbf{X}$ that is $n$ by $p$ where $n$ is the number of data entries and $p$ is the number of variables. Suppose you are given $\textbf{y}$ that is $n$ by 1 and you suspect that $$\textbf{y}=f(\textbf{X})+\epsilon$$ where $\epsilon$ is a random variable and $f$ is a model, possibly nonlinear. The goal of supervised learning is to build a model for $f$ which we call $\hat{f}$ that can be used to predict $y$ for some input that does not belong to $\textbf{X}$. There a numerous approaches to build a model; and you pick the approach that suits your needs. If you are interested in investigating relationships certain variables to the response (inference), then you use methods like linear regression or lasso. If you are only interested in building an accurate predictor without assuming anything about $f$ (prediction), then you can use methods like support vector machines and neural nets. All of these methods are already implemented in R. All you have to do is install and load the libraries.
+
+\subsection{Data}
+First, we will load a couple of libraries and start looking at one of the data sets called Boston which contains Crime information in Boston. This is covered in Chapter 3. You can find the source code \href{http://www-bcf.usc.edu/~gareth/ISL/Chapter%203%20Lab.txt}{here}. Try out these commands:
+\begin{verbatim}
+install.packages("ISLR") # you may this to retrieve the package from the web
+library(ISLR) # you use this to load the library
+library(MASS) # this package contains data sets
+
+dim(Boston)  # dimensions of the data set
+head(Boston) # print out the first few rows of the data set
+?Boston      # print out documentation on the data set
+pairs(Boston) # plot every variable against each other
+attach(Boston) # load the columns of the data into the environment
+\end{verbatim}
+We will let \texttt{medv} be the response variable $y$ and try to produce a good model for it. We call the guess model $\hat{f}$.
+
+\begin{figure}
+\centering
+\includegraphics[scale=0.5]{fig5}
+\caption{A pair plot between all the variables in the Boston data set. This is quick way to investigate correlations. Looking at the bottom right, we see that there is an inverse correlation between lstat and medv.}
+\end{figure}
+
+\subsection{Inference Methods}
+We wish to figure out which of the variables actually influence medv. First, we try linear regression. We assume that $y$ is a linear combination of certain variables. We will try to model medv based on a linear combination of lstat.
+\begin{verbatim}
+# single variable
+lm1.fit=lm(medv~lstat) # construct a linear fit: assume the form y = cx
+summary(lm1.fit) # print out a summary    c is roughly -0.95 is high confidence
+predict(lm1.fit,data.frame(lstat=(c(5,10,15))), interval="confidence")
+predict(lm1.fit,data.frame(lstat=(c(5,10,15))), interval="prediction")
+plot(lstat,medv)           # plot the data
+abline(lm1.fit,lwd=3,col="red") # plot the fitted line
+
+# all variables
+lma.fit=lm(medv~.,data=Boston) # linear fit with all variables
+summary(lma.fit)               # determine which variables are good
+\end{verbatim}
+Based on the output of the linear fit summary, we can figure out which variables are good predictors for medv assuming there is a linear relationship. We see from the summary that age has a high p-value and should not be used in the linear model.
+
+There is another class of inference methods that work with a penalty parameter $\lambda$. When you model $y$, you can choose to ignore the noisy pattern in the data by passing a higher value of $\lambda$. If you trust that your data has little noise, then you will fit your model $\hat{f}$ closely to the data by passing a low value of $\lambda$. This is an example of Ridge regression and Lasso:
+
+\begin{verbatim}
+install.packages("glm") # install
+library(glm)            # load
+set.seed(1)
+N = 100
+X = rnorm(N,mean=0,sd=3)
+e = rnorm(N,mean=0,sd=10)
+B = c(0,-20,5,1)
+Y = V=B[1] + B[2]*X + B[3]*X^2 + B[4]*X^3 + e  # y = polynomial(x) + noise
+plot(X,Y)
+simulation = data.frame( y=Y, x=X, x2=X^2, x3=X^3,
+                         x4=X^4, x5=X^5, x6=X^6, x7=X^7,
+                         x8=X^8, x9=X^9, x10=X^10)
+
+cv_ridge = cv.glmnet(as.matrix(simulation[,-1]),Y,alpha=0)
+optimal_lam = cv_ridge$lambda.min
+optimal_ridge = glmnet(as.matrix(simulation[,-1]),Y,lambda = optimal_lam,alpha=0)
+coef(optimal_ridge)
+
+cv_lasso = cv.glmnet(as.matrix(simulation[,-1]),Y,alpha=1)
+optimal_lam = cv_lasso$lambda.min
+optimal_lasso = glmnet(as.matrix(simulation[,-1]),Y,lambda = optimal_lam,alpha=1)
+coef(optimal_lasso)
+\end{verbatim}
+A good value for the fit parameter $\lambda$ can be generated through a re-sampling method called cross validation. Luckily, it has already been implemented, and you can call on the function in R. Once you find a good value, you can do ridge or lasso, and print out the results.
+
+\subsection{Prediction Methods}
+Prediction methods are only concerned with minimizing the training error. You can read more about that \href{https://en.wikipedia.org/wiki/Training,_validation,_and_test_sets}{here}. They will not let you infer about the actual relationship between $y$ and $X$. Support vector machines and neural nets are a couple of examples. The following is a Neural Net example. You will need the file \texttt{concrete.csv} is your working directory.
+
+\begin{verbatim}
+##### Case Study: Neural Networks for Modeling the Strength of Concrete  ----
+concrete <- read.csv("concrete.csv")
+str(concrete)
+
+# custom normalization function
+normalize <- function(x) {
+  return((x - min(x)) / (max(x) - min(x)))
+}
+
+# apply normalization to entire data frame
+concrete_norm <- as.data.frame(lapply(concrete, normalize))
+
+# confirm that the range is now between zero and one
+summary(concrete_norm$strength)
+
+# compared to the original minimum and maximum
+summary(concrete$strength)
+
+# create training and test data
+concrete_train <- concrete_norm[1:773, ]
+concrete_test <- concrete_norm[774:1030, ]
+
+
+# train the neuralnet model
+install.packages("neuralnet")
+library(neuralnet)
+
+# simple ANN with only a single hidden neuron
+concrete_model <- neuralnet(formula = strength ~ cement + slag +
+                              ash + water + superplastic +
+                              coarseagg + fineagg + age,
+                              data = concrete_train)
+
+# visualize the network topology
+plot(concrete_model)
+
+model_results <- compute(concrete_model, concrete_test[1:8])
+# obtain predicted strength values
+predicted_strength <- model_results$net.result
+# examine the correlation between predicted and actual values
+cor(predicted_strength, concrete_test$strength)
+
+## Step 5: Improving model performance ----
+# a more complex neural network topology with 5 hidden neurons
+concrete_model2 <- neuralnet(strength ~ cement + slag +
+                               ash + water + superplastic +
+                               coarseagg + fineagg + age,
+                               data = concrete_train, hidden = 5)
+
+plot(concrete_model2)
+
+model_results2 <- compute(concrete_model2, concrete_test[1:8])
+predicted_strength2 <- model_results2$net.result
+cor(predicted_strength2, concrete_test$strength)
+\end{verbatim}
+
+\subsection{Exercise}
+In the ISLR package there is a data set called Auto. It shows data of automobiles from the 1970s. Try to come up with a model for fuel efficiency (MPG) based on the other variables. Test your model's prediction ability against the neural net.
+
+
+\section{Day 11}
+Today we will go over basic HTML. \href{https://en.wikipedia.org/wiki/HTML}{HTML} is a markup language to develop webpages. The school provides you a webpage which you can access at the url: \texttt{https://web.njit.edu/$\sim$UCID/}. Your default webpage will give you instructions on how to modify your site. SSH into into AFS or Kong and look for the directory \texttt{public\_html} in which you will find the main file \texttt{index.html}. This is the file you edit to change your homepage. You can edit HTML files on any editor you want. I recommend building a project on your local system first, and then upload the entire project to AFS when you are finished. I will go over the basic elements of of HTML and then have you modify a template for a homepage.
+
+\subsection{Elements and Attributes}
+Everything in HTML is broken down into elements, such as titles, paragraphs, and images. The syntax to make add an element is like this: \texttt{<element\_tag> value </element\_tag>}. Follow this \href{https://www.w3schools.com/html/html_basic.asp}{tutorial}. You will make a title and paragraph element. Most elements are associated with some parameters or attributes. They can be modified by following this syntax: \texttt{<element attribute=value> value </element>}. You can do things like force a specific attribute on all of your elements, or create your own elements. You will do this by making your own style sheet. For now, you only need to know:
+\begin{itemize}
+    \item \texttt{<> </>} mark the beginning and end of an element
+    \item Element properties can be modified within the first brackets
+    \item You can create a separate file .css to specifiy all style changes
+\end{itemize}
+
+\subsection{Important Elements}
+\begin{itemize}
+    \item \texttt{<title>}
+    \item \texttt{<h1>}, \texttt{<h2>}, ... \texttt{<h6>}
+    \item \texttt{<p>}
+    \item \texttt{<ul>} or \texttt{<il>}
+    \item \texttt{<img src = /path/to/image/test.png>}
+    \item \texttt{<a href = "Document URL" ... attributes-list>Link Text</a>}
+\end{itemize}
+
+\subsection{Setting up a basic webpage}
+I will provide a basic template for you to modify. You can get it \href{https://web.njit.edu/~tt73/599.html}{here}. This template is from \href{https://www.w3schools.com/}{w3schools}. They have a comprehensive style sheet with buttons, navigation menus, tables, etc. You can find their documentation \href{https://www.w3schools.com/w3css/w3css_references.asp}{here}. You only need to make minimal changes to personalize your webpage.
+\begin{itemize}
+    \item Download the zip file and unpack it into a folder
+    \item Open up index.html in a web browser and in a text editor (like Notepad++)
+    \item Make changes in the html file, save, and then refresh the webpage to see the changes
+    \item When you are done, copy the contents of the folder and then paste it into \texttt{public\_html} (overwrite index.html)
+\end{itemize}
+You can go \href{https://www.w3schools.com/w3css/w3css_intro.asp}{here} to see more features available in the w3 sheet.
+
+% This sets up the bibliography
+\bibliographystyle{plain}
+\bibliography{ref}
+
+\end{document}
